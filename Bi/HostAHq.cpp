@@ -147,7 +147,7 @@ void	CHostAHq::GetKLineFromBinance(char *currency, TestParam tp, vector<AnalyDat
 			for(int i=nStart;i<DataRemote.size();i++)
 				NewCachedData.m_PreHisData.push_back(DataRemote[i]);
 			
-			Sleep(500);
+			Sleep(50);
 		}
 		m_CachedHisData[nPerSeed] = NewCachedData;
 	}
@@ -177,7 +177,7 @@ void	CHostAHq::GetKLineFromBinance(char *currency, TestParam tp, vector<AnalyDat
 			m_CachedHisData[nPerSeed].m_AppendHisData.push_back(DataRemote[i]);
 		if(DataRemote.size()<nReqNum)
 			break;
-		Sleep(500);
+		Sleep(50);
 	}
 	CurHisData = m_CachedHisData[nPerSeed].m_AppendHisData;
 
