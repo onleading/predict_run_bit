@@ -373,10 +373,14 @@ double  GetStaticRatio(MatchParamInfo mpi, double dwPostSwing)
 
 		if(fNowPrice<dwBottom)
 			dwPosFlag = dwOnBottomFlag;
+		/*
 		else if(fNowPrice>dwTopTop)
 			dwPosFlag = dwPostSwing;
 		else if(fNowPrice>dwTop&&fNowPrice<=dwTopTop)
 			dwPosFlag = dwOnTopFlag+(dwPostSwing-dwOnTopFlag)*(fNowPrice-dwTop)/(dwTopTop-dwTop);
+		*/
+		else if(fNowPrice>dwTop)
+			dwPosFlag = dwOnTopFlag;
 		else 
 		{
 			double dWholeRatio = 0.5;
@@ -402,10 +406,14 @@ double  GetStaticRatio(MatchParamInfo mpi, double dwPostSwing)
 
 		if(fNowPrice<dwBottom)
 			dwPosFlag = dwOnBottomFlag;
+		/*
 		else if(fNowPrice>dwTopTop)
 			dwPosFlag = dwPostSwing;
 		else if(fNowPrice>dwTop&&fNowPrice<=dwTopTop)
 			dwPosFlag = dwOnTopFlag+(dwPostSwing-dwOnTopFlag)*(fNowPrice-dwTop)/(dwTopTop-dwTop);
+		*/
+		else if(fNowPrice>dwTop)
+			dwPosFlag = dwOnTopFlag;
 		else 
 		{
 			double dWholeRatio = 0.5;
