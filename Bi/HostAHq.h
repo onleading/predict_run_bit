@@ -44,6 +44,8 @@ struct TradeTestInfo
 	vector<MatchParamInfo> m_BestMatchs_s;
 	TestParam	m_TestParam;
 	TradeInfo	m_TradeInfo;
+	double		m_dLastSwingPos;
+	BOOL		m_bStartFlag;
 
 	TradeTestInfo()
 	{
@@ -54,6 +56,7 @@ struct TradeTestInfo
 		m_BestMatchs_d.clear();
 		memset(&m_TestParam, 0, sizeof(m_TestParam));
 		memset(&m_TradeInfo, 0, sizeof(m_TradeInfo));
+		m_bStartFlag = FALSE;
 	}
 };
 
