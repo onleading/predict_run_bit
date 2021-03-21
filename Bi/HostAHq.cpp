@@ -316,7 +316,7 @@ double  GetStaticSwingPos(MatchParamInfo mpi)
 		double dwTop = mpi.cp.fActPrice*(1.0+dwProfSpan/100.0)+dReverseRange;
 		double dwBottom = mpi.cp.fHLValue;
 		
-		double dWholeRatio = pow((dwTop-fNowPrice)/(dwTop-dwBottom),0.5);
+		double dWholeRatio = pow((dwTop-fNowPrice)/(dwTop-dwBottom),0.618);
 		dwSwingPos  = dWholeRatio;
 	}
 	else if(mpi.cp.nBSFlag==-1)	//on down
@@ -326,7 +326,7 @@ double  GetStaticSwingPos(MatchParamInfo mpi)
 		double dwTop = mpi.cp.fHLValue;
 		double dwBottom = mpi.cp.fActPrice*(1.0-dwProfSpan/100.0)-dReverseRange;
 		
-		double dWholeRatio = pow((dwTop-fNowPrice)/(dwTop-dwBottom),1.5);
+		double dWholeRatio = pow((dwTop-fNowPrice)/(dwTop-dwBottom),1.382);
 		dwSwingPos  = dWholeRatio;	
 	}
 	return dwSwingPos;
@@ -366,7 +366,7 @@ double  GetStaticRatio(MatchParamInfo mpi, double dwPostSwing)
 		double dwProfSpan = max(0.618*fProfit, 0.618*fProfit+0.382*100.0*(mpi.cp.fLastActPrice-mpi.cp.fActPrice)/mpi.cp.fLastActPrice);
 	//	double dwProfSpan = fProfit;
 		
-		double dwTop = mpi.cp.fActPrice*(1.0+dwProfSpan/100.0)+dReverseRange;
+		double dwTop = mpi.cp.fActPrice*(1.0+1.618*dwProfSpan/100.0)+dReverseRange;
 		double dwBottom = mpi.cp.fHLValue;
 		double dwTopTop = dwTop+dReverseRange;
 		double dwBottomBottom = dwBottom-dReverseRange;
@@ -400,7 +400,7 @@ double  GetStaticRatio(MatchParamInfo mpi, double dwPostSwing)
 	//	double dwProfSpan = fProfit;
 
 		double dwTop = mpi.cp.fHLValue;
-		double dwBottom = mpi.cp.fActPrice*(1.0-dwProfSpan/100.0)-dReverseRange;
+		double dwBottom = mpi.cp.fActPrice*(1.0-1.618*dwProfSpan/100.0)-dReverseRange;
 		double dwTopTop = dwTop+dReverseRange;
 		double dwBottomBottom = dwBottom-dReverseRange;
 
@@ -608,6 +608,12 @@ DWORD	WINAPI	AfxBestMatchesCalc(LPVOID lParam)
 	return 0;
 }
 
+double	ProcEmaSwingPos(double dNewVal, double dOldVal, int nPart)
+{
+	return (dNewVal+0.618*(double)(nPart-TEST_START)*dOldVal)/(double)(1.0+0.618*(double)(nPart-TEST_START));
+//	return dNewVal;
+}
+
 BOOL	CHostAHq::GetSwingPos(int nTestPart, double &dwPostSwing)
 {	
 	TradeTestInfo *pCurTti = &m_TradeTestInfo[nTestPart];
@@ -639,6 +645,11 @@ BOOL	CHostAHq::GetSwingPos(int nTestPart, double &dwPostSwing)
 		dwPostSwing = min(dwPostSwing_s, dwPostSwing_d);
 	else 
 		dwPostSwing = max(dwPostSwing_s, dwPostSwing_d);
+
+	if(pCurTti->m_bStartFlag==TRUE)		//process ema	
+		dwPostSwing = ProcEmaSwingPos(dwPostSwing, pCurTti->m_dLastSwingPos, nTestPart);
+	pCurTti->m_bStartFlag = TRUE;
+	pCurTti->m_dLastSwingPos = dwPostSwing;
 
 	return TRUE;
 }
