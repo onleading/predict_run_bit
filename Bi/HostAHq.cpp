@@ -942,6 +942,9 @@ BOOL	CHostAHq::Calc2Trade_Func(char *ZBCode, char *currency, double fLastTrade)
 	for(s=TEST_START;s<=TEST_END;s++)
 	{
 		pCurTti = &m_TradeTestInfo[s];
+		if(pCurTti->m_BestMatchs_s.empty()&&pCurTti->m_BestMatchs_d.empty())
+			continue;
+
 		iLastData = pCurTti->m_pCalcInst->GetLastData();
 		nDataNum = pCurTti->m_pCalcInst->GetDataNum();
 		TestParam tp = pCurTti->m_TestParam;
@@ -953,6 +956,8 @@ BOOL	CHostAHq::Calc2Trade_Func(char *ZBCode, char *currency, double fLastTrade)
 		fSumSqrtRatio += pow(fPartRatio, 2.0);
 		nCount++;
 	}
+	if(nCount<1)
+		return FALSE;
 	double dwNewInRatio = pow(fSumSqrtRatio/(double)nCount, 0.5);
 
 	//get balance
