@@ -221,15 +221,22 @@ void	CHostAHq::SetTestParamSet(char *ZBCode, char *currency, int nGroupNum)
 	for(int i=0;i<nGroupNum;i++)
 		dwBaseFlagSum += pow(dwGapFlag, i);
 	double dwBaseGap = (double)(nEndParamFlag-nStartParamFlag)/dwBaseFlagSum;
-	double dwTraceGap = nStartParamFlag, dwTraceDays = nBaseDays;
+	int nTraceGap = nStartParamFlag-1, dwTraceDays = nBaseDays;
+	double fTestStartStepFlag = 1.0;
 	for(i=0;i<nGroupNum;i++)
 	{
 		TestParam	tp={0};
 		tp.PerSeed = i;
-		tp.nUnitParam_Start=dwTraceGap+(1.0-COMPPREC);
+		tp.nUnitParam_Start=nTraceGap+1;
+		if(i==TEST_END-TEST_START+1)
+			fTestStartStepFlag = pow(dwGapFlag, i);
+		if(i<=TEST_END-TEST_START+1)
+			tp.fStepFlag = 1.0;
+		else 
+			tp.fStepFlag = pow(dwGapFlag, i)/fTestStartStepFlag;
 		double dwThisGap = dwBaseGap*pow(dwGapFlag, i);
-		tp.nUnitParam_End = dwTraceGap = (double)tp.nUnitParam_Start+dwThisGap;
-		tp.nCalcDays = dwTraceDays+0.5;
+		tp.nUnitParam_End = nTraceGap = tp.nUnitParam_Start+(int)dwThisGap;
+		tp.nCalcDays = dwTraceDays;
 		dwTraceDays *= dwDayFlag;
 
 		tp.TradeFee = REAL_TRADE_FEE;
@@ -298,7 +305,7 @@ double  GetStaticSwingPos(MatchParamInfo mpi)
 */
 
 
-double  GetStaticSwingPos(MatchParamInfo mpi)
+double  GetStaticSwingPos(MatchParamInfo &mpi)
 {
 	double fProfit = mpi.fProfitSum/(double)mpi.nCount;
 	BOOL bThisPositive = (mpi.fProfitSum>COMPPREC);
@@ -329,20 +336,9 @@ double  GetStaticSwingPos(MatchParamInfo mpi)
 		double dWholeRatio = pow((dwTop-fNowPrice)/(dwTop-dwBottom),1.382);
 		dwSwingPos  = dWholeRatio;	
 	}
+	mpi.cp.fNewSwing = dwSwingPos;
 	return dwSwingPos;
 }
-
-/*
-double  GetStaticSwingPos(MatchParamInfo mpi)
-{	
-	double dwPosFlag = 0.5;
-	if(mpi.cp.nBSFlag==1)			//on up
-		dwPosFlag = 1.0;
-	else if(mpi.cp.nBSFlag==-1)	//on down
-		dwPosFlag = 0.0;
-	return dwPosFlag;
-}
-*/
 
 double  GetStaticRatio(MatchParamInfo mpi, double dwPostSwing)
 {
@@ -353,32 +349,24 @@ double  GetStaticRatio(MatchParamInfo mpi, double dwPostSwing)
 	double fNowPrice = mpi.cp.fNow;
 
 	double dwPosFlag = 0.5;
-	double dwUpPart = 0.5*(1.0-dwPostSwing);
-	double dwDownPart = 0.5*dwPostSwing;
-	double dwOnTopFlag = dwPostSwing-min(dwDownPart, 1.5*dwUpPart);
-	double dwOnBottomFlag = dwPostSwing+min(dwUpPart, 1.5*dwDownPart);
-//	if(dwPostSwing<0.5)
-//		dwOnBottomFlag = max(dwOnTopFlag, pow(2.0*dwPostSwing, 2.0));
+	double dwUpPart = 0.618*(1.0-dwPostSwing);
+	double dwDownPart = 0.618*dwPostSwing;
+	double dwOnTopFlag = dwPostSwing-min(dwDownPart, 1.236*dwUpPart);
+	double dwOnBottomFlag = dwPostSwing+min(dwUpPart, 1.236*dwDownPart);
+
 	float fAverGap = mpi.fGapSum/(float)mpi.nCount;
 	double dReverseRange = fAverGap*mpi.cp.fHLValue/100.0;
 	if(mpi.cp.nBSFlag==1)	//on up
 	{
 		double dwProfSpan = max(0.618*fProfit, 0.618*fProfit+0.382*100.0*(mpi.cp.fLastActPrice-mpi.cp.fActPrice)/mpi.cp.fLastActPrice);
-	//	double dwProfSpan = fProfit;
 		
-		double dwTop = mpi.cp.fActPrice*(1.0+1.618*dwProfSpan/100.0)+dReverseRange;
+		double dwTop = mpi.cp.fActPrice*(1.0+1.382*dwProfSpan/100.0)+dReverseRange;
 		double dwBottom = mpi.cp.fHLValue;
 		double dwTopTop = dwTop+dReverseRange;
 		double dwBottomBottom = dwBottom-dReverseRange;
 
 		if(fNowPrice<dwBottom)
 			dwPosFlag = dwOnBottomFlag;
-		/*
-		else if(fNowPrice>dwTopTop)
-			dwPosFlag = dwPostSwing;
-		else if(fNowPrice>dwTop&&fNowPrice<=dwTopTop)
-			dwPosFlag = dwOnTopFlag+(dwPostSwing-dwOnTopFlag)*(fNowPrice-dwTop)/(dwTopTop-dwTop);
-		*/
 		else if(fNowPrice>dwTop)
 			dwPosFlag = dwOnTopFlag;
 		else 
@@ -397,21 +385,14 @@ double  GetStaticRatio(MatchParamInfo mpi, double dwPostSwing)
 	else if(mpi.cp.nBSFlag==-1)	//on down
 	{
 		double dwProfSpan = max(0.618*fProfit, 0.618*fProfit+0.382*100.0*(mpi.cp.fActPrice-mpi.cp.fLastActPrice)/mpi.cp.fLastActPrice);
-	//	double dwProfSpan = fProfit;
 
 		double dwTop = mpi.cp.fHLValue;
-		double dwBottom = mpi.cp.fActPrice*(1.0-1.618*dwProfSpan/100.0)-dReverseRange;
+		double dwBottom = mpi.cp.fActPrice*(1.0-1.382*dwProfSpan/100.0)-dReverseRange;
 		double dwTopTop = dwTop+dReverseRange;
 		double dwBottomBottom = dwBottom-dReverseRange;
 
 		if(fNowPrice<dwBottom)
 			dwPosFlag = dwOnBottomFlag;
-		/*
-		else if(fNowPrice>dwTopTop)
-			dwPosFlag = dwPostSwing;
-		else if(fNowPrice>dwTop&&fNowPrice<=dwTopTop)
-			dwPosFlag = dwOnTopFlag+(dwPostSwing-dwOnTopFlag)*(fNowPrice-dwTop)/(dwTopTop-dwTop);
-		*/
 		else if(fNowPrice>dwTop)
 			dwPosFlag = dwOnTopFlag;
 		else 
@@ -430,158 +411,6 @@ double  GetStaticRatio(MatchParamInfo mpi, double dwPostSwing)
 	}
 	return dwPosFlag;
 }
-
-void	ProceedTradeAndLog(char *currency, vector<MatchParamInfo> BestMatchs_s, vector<MatchParamInfo> BestMatchs_d, TradeInfo &TTinfo, AnalyData iLastData, long nDataNum, double dwPostSwing, char *LogDict)
-{
-	if(TTinfo.m_bStart2Trade)
-	{
-		char strInitFund[20]={0};
-		GetPrivateProfileString("POOL","InitFund","50000.0",strInitFund,1000,g_WSXHStr+"POOLInfo_Bit.ini");
-		TTinfo.m_dwAvalFund = atof(strInitFund);
-		TTinfo.m_dwInVol = 0.0;
-		TTinfo.m_dwCurInRatio = 0.0;
-	}
-	TTinfo.m_dwLastInRatio = TTinfo.m_dwCurInRatio;
-	
-	double dwSwingPart=0.0, dwBoDongPart=1.0;
-	//static
-	double dwPartSum_s = 0.0, dwNewInRatio_Sum_s = 0.0;
-	for(int i=0;i<BestMatchs_s.size();i++)
-	{
-		MatchParamInfo mpi = BestMatchs_s[i];
-		/*
-		float fProfit = mpi.fProfitSum/(float)mpi.nCount;
-		double dwPart = fProfit;
-		BOOL bThisPositive = (mpi.fProfitSum>COMPPREC);
-		if(!bThisPositive)
-			dwPart = 0.618/(0.618+fabs(fProfit));
-		*/
-		double dwPart = 1.0;
-
-		dwNewInRatio_Sum_s += dwBoDongPart*dwPart*GetStaticRatio(mpi, dwPostSwing);
-		dwPartSum_s += dwPart;
-	}
-	double dwNewInRatio_s = 0.0;
-	if(dwPartSum_s>COMPPREC)
-		dwNewInRatio_s = dwNewInRatio_Sum_s/dwPartSum_s;
-	//dyna
-	double dwPartSum_d = 0.0, dwNewInRatio_Sum_d = 0.0;
-	for(i=0;i<BestMatchs_d.size();i++)
-	{
-		MatchParamInfo mpi = BestMatchs_d[i];
-		/*
-		float fProfit = mpi.fProfitSum/(float)mpi.nCount;
-		double dwPart = fProfit;
-		BOOL bThisPositive = (mpi.fProfitSum>COMPPREC);
-		if(!bThisPositive)
-			dwPart = 0.618/(0.618+fabs(fProfit));
-		*/
-		double dwPart = 1.0;
-		
-		dwNewInRatio_Sum_d += dwBoDongPart*dwPart*GetStaticRatio(mpi, dwPostSwing);
-		dwPartSum_d += dwPart;
-	}
-	double dwNewInRatio_d = 0.0;
-	if(dwPartSum_d>COMPPREC)
-		dwNewInRatio_d = dwNewInRatio_Sum_d/dwPartSum_d;
-
-	double dwNewInRatio = dwPostSwing;
-	if(!BestMatchs_s.empty()&&!BestMatchs_d.empty())
-		dwNewInRatio = min(dwNewInRatio_s, dwNewInRatio_d);
-	else if(BestMatchs_s.empty()&&BestMatchs_d.empty())
-		dwNewInRatio = dwPostSwing;
-	else 
-		dwNewInRatio = max(dwNewInRatio_s,dwNewInRatio_d);
-
-//	dwNewInRatio = min(1.0, dwNewInRatio);
-//	dwNewInRatio = max(0.0, dwNewInRatio);
-//////////////////////////////////////////////////////////
-
-	if(fabs(dwNewInRatio-TTinfo.m_dwCurInRatio)>COMPPREC)		//need to trade
-	{
-		double dwAllBal = TTinfo.m_dwAvalFund+TTinfo.m_dwInVol*iLastData.Close;
-		if(dwNewInRatio-TTinfo.m_dwCurInRatio>COMPPREC||dwNewInRatio-TTinfo.m_dwCurInRatio>0.08||fabs(dwNewInRatio-1.0)<COMPPREC)		//buy
-		{
-			if(TTinfo.m_bStart2Trade==TRUE||(TTinfo.m_fLastTradePrice>COMPPREC&&fabs(iLastData.Close-TTinfo.m_fLastTradePrice)/TTinfo.m_fLastTradePrice>TRADE_GAP))
-			{
-				char ActionPrice[100]={0};
-				double dwBuyPrice = iLastData.Close;
-				double dwUsedFund = min(TTinfo.m_dwAvalFund, dwAllBal*(dwNewInRatio-TTinfo.m_dwCurInRatio));
-				double dwBuyVol = dwUsedFund/(dwBuyPrice*(1.0+(TTinfo.m_bStart2Trade?0.0:REAL_TRADE_FEE)));
-				TTinfo.m_dwAvalFund -= dwUsedFund;
-				TTinfo.m_dwInVol += dwBuyVol;
-				
-				TTinfo.m_bStart2Trade = FALSE;
-				TTinfo.m_fLastTradePrice = dwBuyPrice;
-				TTinfo.m_dwCurInRatio = dwNewInRatio;
-			}
-		}
-		else if(TTinfo.m_dwCurInRatio-dwNewInRatio>COMPPREC||TTinfo.m_dwCurInRatio-dwNewInRatio>0.08||dwNewInRatio<COMPPREC)		//sell
-		{
-			if(TTinfo.m_bStart2Trade==TRUE||(TTinfo.m_fLastTradePrice>COMPPREC&&fabs(iLastData.Close-TTinfo.m_fLastTradePrice)/TTinfo.m_fLastTradePrice>TRADE_GAP))
-			{
-				char ActionPrice[100]={0};
-				double dwSellPrice = iLastData.Close;
-				double dwSellVol = min(TTinfo.m_dwInVol, TTinfo.m_dwInVol-TTinfo.m_dwInVol*dwNewInRatio/TTinfo.m_dwCurInRatio);
-				double dwBackFund = dwSellVol*dwSellPrice*(1.0-REAL_TRADE_FEE);
-				TTinfo.m_dwAvalFund += dwBackFund;
-				TTinfo.m_dwInVol -= dwSellVol;
-				
-				TTinfo.m_fLastTradePrice = dwSellPrice;
-				TTinfo.m_dwCurInRatio = dwNewInRatio;
-			}
-		}
-	}
-
-	if(TRUE)
-	{
-		char FileName[MAX_PATH]={0};
-		sprintf(FileName, "%s\\bestmatch_log.csv", LogDict);
-		FILE *BestParamsFile = _fsopen(FileName,"a+",SH_DENYNO);
-		if(BestParamsFile)
-		{
-			fprintf(BestParamsFile, "%.3f, %.3f, %.3f\n", dwPostSwing, TTinfo.m_dwCurInRatio, iLastData.Close);
-			fclose(BestParamsFile);
-		}
-	}
-	if(TRUE)
-	{
-		char FileName[MAX_PATH]={0};
-		sprintf(FileName, "%s\\bestmatch_log-(%04d-%02d).txt", LogDict, iLastData.Time.Daye.Day, iLastData.Time.Daye.Minute/60);
-		FILE *BestParamsFile = _fsopen(FileName,"a+",SH_DENYNO);
-		if(BestParamsFile)
-		{
-			double dwCurBal = TTinfo.m_dwAvalFund+TTinfo.m_dwInVol*iLastData.Close;
-			fprintf(BestParamsFile, "-------------------------------------------------\r\n");
-			fprintf(BestParamsFile, "%d-%04d-%02d:%02d(%d):\t%.3f\t%.3f(%.3f,%.3f)\t%.3f\r\n", 
-				iLastData.Time.Daye.Year+2004, iLastData.Time.Daye.Day, iLastData.Time.Daye.Minute/60, iLastData.Time.Daye.Minute%60, nDataNum, 
-				iLastData.Close, dwCurBal, TTinfo.m_dwCurInRatio, dwPostSwing, dwCurBal/iLastData.Close);
-			fprintf(BestParamsFile, "---------static---------\r\n");
-			for(int k=0;k<BestMatchs_s.size();k++)
-			{
-				MatchParamInfo mpi = BestMatchs_s[k];
-				if(mpi.nCount<1) continue;
-				float fProfit = mpi.fProfitSum/(float)mpi.nCount;
-				if(mpi.cp.nBSFlag==-1)
-					fProfit = 0.0f-fProfit;
-				fprintf(BestParamsFile, "%d\t%d|%d\t%.2f\t%d(%d)\t%.3f(%.3f. %.3f)\r\n", 
-					mpi.cp.nUnit, mpi.cp.ZBParam[0], mpi.cp.ZBParam[1], fProfit, mpi.nRangeSum/mpi.nCount, nDataNum-mpi.cp.lHLRawPos+1, mpi.cp.fActPrice, mpi.cp.fHLValue, mpi.cp.fAverPrice);
-			}
-			fprintf(BestParamsFile, "---------dynamic---------\r\n");
-			for(k=0;k<BestMatchs_d.size();k++)
-			{
-				MatchParamInfo mpi = BestMatchs_d[k];
-				if(mpi.nCount<1) continue;
-				float fProfit = mpi.fProfitSum/(float)mpi.nCount;
-				if(mpi.cp.nBSFlag==-1)
-					fProfit = 0.0f-fProfit;
-				fprintf(BestParamsFile, "%d\t%d|%d\t%.2f\t%d(%d)\t%.3f(%.3f. %.3f)\r\n", 
-					mpi.cp.nUnit, mpi.cp.ZBParam[0], mpi.cp.ZBParam[1], fProfit, mpi.nRangeSum/mpi.nCount, nDataNum-mpi.cp.lHLRawPos+1, mpi.cp.fActPrice, mpi.cp.fHLValue, mpi.cp.fAverPrice);
-			}
-			fclose(BestParamsFile);
-		}
-	}
-}
 /////////////////////////////////////////////////////////////////////////////////////////
 DWORD	WINAPI	AfxBestMatchesCalc(LPVOID lParam)
 {
@@ -593,11 +422,11 @@ DWORD	WINAPI	AfxBestMatchesCalc(LPVOID lParam)
 	int nMaxUnit= min(MAX_UNIT, (float)tp.nUnitParam_End/12.0);
 	CalcParam cpp_param={0};
 	for(int nUnit=nMinUnit;nUnit<=nMaxUnit;nUnit++)
-		pOcr->CalcRes_Show_Result(pCurTti->ZBCode, nUnit, cpp_param, tp.nUnitParam_Start, tp.nUnitParam_End);
+		pOcr->CalcRes_Show_Result(pCurTti->ZBCode, nUnit, cpp_param, tp);
 
 	pCurTti->m_BestMatchs_s.clear();
 	pCurTti->m_BestMatchs_d.clear();
-	pOcr->FiltBestProfLine(pCurTti->m_BestMatchs_s, pCurTti->m_BestMatchs_d);
+	pOcr->FiltBestProfLine(pCurTti->m_BestMatchs_s, pCurTti->m_BestMatchs_d, tp);
 	/*
 	vector<MatchParamInfo> BestMatchs_Static;
 	pOcr->FiltBestProfLine_Static(BestMatchs_Static);
@@ -608,93 +437,92 @@ DWORD	WINAPI	AfxBestMatchesCalc(LPVOID lParam)
 	return 0;
 }
 
-double	ProcEmaSwingPos(double dNewVal, double dOldVal, int nPart)
+BOOL	CHostAHq::GetSwingPos(int nTestPart, double &dwPostSwing, double &dwPostTrend)
 {
-	return (dNewVal+0.618*(double)(nPart-TEST_START)*dOldVal)/(double)(1.0+0.618*(double)(nPart-TEST_START));
-//	return dNewVal;
-}
-
-BOOL	CHostAHq::GetSwingPos(int nTestPart, double &dwPostSwing)
-{	
 	TradeTestInfo *pCurTti = &m_TradeTestInfo[nTestPart];
 	if(pCurTti->m_BestMatchs_s.empty()&&pCurTti->m_BestMatchs_d.empty()) return FALSE;
 	
 	//static
-	double dwSwingPosSum_s=0.0;
+	double dwSwingPosSum_s=0.0, dwTrendPosSum_s=0.0;
 	for(int i=0;i<pCurTti->m_BestMatchs_s.size();i++)
 	{
-		MatchParamInfo mpi = pCurTti->m_BestMatchs_s[i];
-		dwSwingPosSum_s += GetStaticSwingPos(mpi);
+		GetStaticSwingPos(pCurTti->m_BestMatchs_s[i]);
+		dwSwingPosSum_s += pCurTti->m_BestMatchs_s[i].cp.fNewSwing;
+		dwTrendPosSum_s += pCurTti->m_BestMatchs_s[i].cp.fNewTrend;
 	}
-	double dwPostSwing_s = 0.0;
+	double dwPostSwing_s = 0.0, dwPostTrend_s = 0.0;
 	if(!pCurTti->m_BestMatchs_s.empty())
+	{
 		dwPostSwing_s = dwSwingPosSum_s/(double)pCurTti->m_BestMatchs_s.size();
-
+		dwPostTrend_s = dwTrendPosSum_s/(double)pCurTti->m_BestMatchs_s.size();
+	}
 	//dyna
-	double dwSwingPosSum_d=0.0;
+	double dwSwingPosSum_d=0.0, dwTrendPosSum_d=0.0;
 	for(i=0;i<pCurTti->m_BestMatchs_d.size();i++)
 	{
-		MatchParamInfo mpi = pCurTti->m_BestMatchs_d[i];
-		dwSwingPosSum_d += GetStaticSwingPos(mpi);
+		GetStaticSwingPos(pCurTti->m_BestMatchs_d[i]);
+		dwSwingPosSum_d += pCurTti->m_BestMatchs_d[i].cp.fNewSwing;
+		dwTrendPosSum_d += pCurTti->m_BestMatchs_d[i].cp.fNewTrend;
 	}
-	double dwPostSwing_d = 0.0;
+	double dwPostSwing_d = 0.0, dwPostTrend_d = 0.0;
 	if(!pCurTti->m_BestMatchs_d.empty())
+	{
 		dwPostSwing_d = dwSwingPosSum_d/(double)pCurTti->m_BestMatchs_d.size();
-
+		dwPostTrend_d = dwTrendPosSum_d/(double)pCurTti->m_BestMatchs_d.size();
+	}
+	
 	if(!pCurTti->m_BestMatchs_s.empty()&&!pCurTti->m_BestMatchs_d.empty())
-		dwPostSwing = min(dwPostSwing_s, dwPostSwing_d);
+	{
+	//	dwPostSwing = min(dwPostSwing_s, dwPostSwing_d);
+	//	dwPostTrend = min(dwPostTrend_s, dwPostTrend_d);
+		//	 dwPostSwing = pow((pow(dwPostSwing_s,2.0)+pow(dwPostSwing_d,2.0))/2.0, 0.5);
+		// 	 dwPostTrend = pow((pow(dwPostTrend_s,2.0)+pow(dwPostTrend_d,2.0))/2.0, 0.5);
+		dwPostSwing = (dwPostSwing_s+dwPostSwing_d)*0.5;
+		dwPostTrend = (dwPostTrend_s+dwPostTrend_d)*0.5;
+	}
 	else 
+	{
 		dwPostSwing = max(dwPostSwing_s, dwPostSwing_d);
-
-	if(pCurTti->m_bStartFlag==TRUE)		//process ema	
-		dwPostSwing = ProcEmaSwingPos(dwPostSwing, pCurTti->m_dLastSwingPos, nTestPart);
-	pCurTti->m_bStartFlag = TRUE;
-	pCurTti->m_dLastSwingPos = dwPostSwing;
-
+		dwPostTrend = max(dwPostTrend_s, dwPostTrend_d);
+	}
+	
 	return TRUE;
 }
 
 void	CHostAHq::GetSwingPos(double &dwPostSwing)
 {
 	dwPostSwing = 0.0;
-	double dwPostSwing_Sum = 0.0;
-	int nCount = 0;
+
+	double fSwing_Hhv=0.0-COMPPREC,fSwing_Llv=100.0+COMPPREC,
+		fTrend_Hhv=0.0-COMPPREC,fTrend_Llv=100.0+COMPPREC;
 	for(int s=TEST_START;s<=TEST_END;s++)
 	{
-		double dwPostSwing_Par = 0.0;
-		if(GetSwingPos(s, dwPostSwing_Par))
+		double dwPostSwing_Par=0.0, dwPostTrend_Par=0.0;
+		if(GetSwingPos(s, dwPostSwing_Par, dwPostTrend_Par))
 		{
-			dwPostSwing_Sum += dwPostSwing_Par;
-			nCount++;
+			if(dwPostSwing_Par>fSwing_Hhv+COMPPREC)
+				fSwing_Hhv = dwPostSwing_Par;
+			if(dwPostTrend_Par>fTrend_Hhv+COMPPREC)
+				fTrend_Hhv = dwPostTrend_Par;
+
+			if(dwPostSwing_Par<fSwing_Llv-COMPPREC)
+				fSwing_Llv = dwPostSwing_Par;
+			if(dwPostTrend_Par<fTrend_Llv-COMPPREC)
+				fTrend_Llv = dwPostTrend_Par;
 		}
 	}
-//	double dwUpLevel = 2.0/3.0, dwDownLevel = 1.0/3.0;
-	if(nCount>0)
-	{
-		//!!!new calc
-		double dwDynaSwing = dwPostSwing_Sum/(double)nCount;
-		dwPostSwing = dwDynaSwing;
-		/*
-		if(dwDynaSwing>dwUpLevel)
-			dwPostSwing = 0.5+0.5*(dwDynaSwing-dwUpLevel)/(1.0-dwUpLevel);
-		else if(dwDynaSwing<dwDownLevel)
-			dwPostSwing = 0.5*dwDynaSwing/dwDownLevel;
-		*/
-	}
+	double dwDynaSwing = pow((pow(fSwing_Hhv,2.0)+pow(fSwing_Llv,2.0))/2.0, 0.5);
+	double dwDynaTrend = pow((pow(fTrend_Hhv,2.0)+pow(fTrend_Llv,2.0))/2.0, 0.5);
+
+	dwPostSwing = pow(dwDynaSwing*dwDynaTrend,0.5);
 }
 
 void	CHostAHq::TradeFunc_bitc(char *ZBCode, char *currency)
 {
 	::KillTimer(m_hOwnerWnd, DATA_HOSTA);
 
-	memset(Share_Folder, 0, sizeof(Share_Folder));
-	GetShellPath("share_res.lnk", Share_Folder);
-	if(strlen(Share_Folder)==0)
-		GetCurrentDirectory(MAX_PATH,Share_Folder);
-
 	if(m_TradeTestInfo.empty())
 	{
-		//
 		WritePrivateProfileString("POOL","CALCING...","0",g_WSXHStr+"PoolInfo_Bit.ini");
 		InitData(ZBCode, currency);
 		WritePrivateProfileString("POOL","CALCING...","1",g_WSXHStr+"PoolInfo_Bit.ini");
@@ -824,7 +652,7 @@ double	ProceedPartTrade(char *currency, vector<MatchParamInfo> BestMatchs_s, vec
 	
 	double dwNewInRatio = dwPostSwing;
 	if(!BestMatchs_s.empty()&&!BestMatchs_d.empty())
-		dwNewInRatio = min(dwNewInRatio_s, dwNewInRatio_d);
+		dwNewInRatio = 0.5*(dwNewInRatio_s+dwNewInRatio_d);
 	else if(BestMatchs_s.empty()&&BestMatchs_d.empty())
 		dwNewInRatio = dwPostSwing;
 	else 
@@ -848,8 +676,8 @@ double	ProceedPartTrade(char *currency, vector<MatchParamInfo> BestMatchs_s, vec
 			float fProfit = mpi.fProfitSum/(float)mpi.nCount;
 			if(mpi.cp.nBSFlag==-1)
 				fProfit = 0.0f-fProfit;
-			fprintf(BestParamsFile, "%d\t%d|%d\t%.2f\t%d(%d)\t%.3f(%.3f. %.3f)\r\n", 
-				mpi.cp.nUnit, mpi.cp.ZBParam[0], mpi.cp.ZBParam[1], fProfit, mpi.nRangeSum/mpi.nCount, nDataNum-mpi.cp.lHLRawPos+1, mpi.cp.fActPrice, mpi.cp.fHLValue, mpi.cp.fAverPrice);
+			fprintf(BestParamsFile, "%d\t%d|%d\t%.2f\t%d(%d)\t%.3f(%.3f. %.3f)\t(%.3f,%.3f)\r\n", 
+				mpi.cp.nUnit, mpi.cp.ZBParam[0], mpi.cp.ZBParam[1], fProfit, mpi.nRangeSum/mpi.nCount, nDataNum-mpi.cp.lHLRawPos+1, mpi.cp.fActPrice, mpi.cp.fHLValue, mpi.cp.fAverPrice, mpi.cp.fNewSwing, mpi.cp.fNewTrend);
 		}
 		fprintf(BestParamsFile, "---------dynamic---------\r\n");
 		for(k=0;k<BestMatchs_d.size();k++)
@@ -859,8 +687,8 @@ double	ProceedPartTrade(char *currency, vector<MatchParamInfo> BestMatchs_s, vec
 			float fProfit = mpi.fProfitSum/(float)mpi.nCount;
 			if(mpi.cp.nBSFlag==-1)
 				fProfit = 0.0f-fProfit;
-			fprintf(BestParamsFile, "%d\t%d|%d\t%.2f\t%d(%d)\t%.3f(%.3f. %.3f)\r\n", 
-				mpi.cp.nUnit, mpi.cp.ZBParam[0], mpi.cp.ZBParam[1], fProfit, mpi.nRangeSum/mpi.nCount, nDataNum-mpi.cp.lHLRawPos+1, mpi.cp.fActPrice, mpi.cp.fHLValue, mpi.cp.fAverPrice);
+			fprintf(BestParamsFile, "%d\t%d|%d\t%.2f\t%d(%d)\t%.3f(%.3f. %.3f)\t(%.3f,%.3f)\r\n", 
+				mpi.cp.nUnit, mpi.cp.ZBParam[0], mpi.cp.ZBParam[1], fProfit, mpi.nRangeSum/mpi.nCount, nDataNum-mpi.cp.lHLRawPos+1, mpi.cp.fActPrice, mpi.cp.fHLValue, mpi.cp.fAverPrice, mpi.cp.fNewSwing, mpi.cp.fNewTrend);
 		}
 		fclose(BestParamsFile);
 	}
@@ -893,6 +721,11 @@ BOOL	CHostAHq::Calc2Trade_Func(char *ZBCode, char *currency, double fLastTrade)
 
 	if(m_TradeTestInfo.empty())
 		SetTestParamSet(ZBCode, currency, TEST_GROUP);
+	//
+	memset(Share_Folder, 0, sizeof(Share_Folder));
+	GetShellPath("share_res.lnk", Share_Folder);
+	if(strlen(Share_Folder)==0)
+		GetCurrentDirectory(MAX_PATH,Share_Folder);
 
 	int nTestGroup = m_TradeTestInfo.size();
 	HANDLE *hCalcThreads = new HANDLE[nTestGroup];
@@ -936,7 +769,6 @@ BOOL	CHostAHq::Calc2Trade_Func(char *ZBCode, char *currency, double fLastTrade)
 
 	double dwPostSwing=1.0;
 	GetSwingPos(dwPostSwing);
-	dwPostSwing = pow(dwPostSwing, 0.81);
 	double fSumSqrtRatio = 0.0;
 	int nCount = 0;
 	for(s=TEST_START;s<=TEST_END;s++)
@@ -1136,6 +968,12 @@ BOOL	CHostAHq::InitHq(LPSTR strError)
 //	AfxMessageBox(ActionPrice);
 //	double ddd = GetPowFlag(4.0,100,16.0,47);
 //	exit(-1);
+
+	vector<BalanceUnit> MyBalances;
+	double dwAllValue=0.0, dwAvailMoney=0.0;
+	BOOL bHasAllOrders = TRUE;
+	GetAllMarketValue(MyBalances, dwAllValue, dwAvailMoney, bHasAllOrders);
+	exit(-1);
 	
 	::SetTimer(m_hOwnerWnd, DATA_HOSTA, g_nInterReq, NULL);
 	//¼ÇÂ¼Ê±¼ä
