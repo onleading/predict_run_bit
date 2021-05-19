@@ -7,8 +7,8 @@
 
 char *publicUrl = "https://poloniex.com/public?";
 char *tradeUrl = "https://poloniex.com/tradingApi";
-char *Api_Key = "1XQJT7IY-VMGO6WSG-L18J6SQJ-1ZOS57KW";
-char *Secret = "936e4e4e13156ceee1755834c695e73fd4c4957c2ed002e95caa638d662b75c27cec9c94b8efda2edf9133465a475ac5410c2976efa46f961ac359fc30422cae";
+char *Api_Key = "HJODWCGZ-BDVVUJ7Z-LZJC04PR-J5JE2J5W";
+char *Secret = "56ce8d00427a1607d9e49c601e584a1bf59c577c2ec4a7c4342ebc5978ee09cfc3f377966d2401a91b902578e83579e9c91093a8c10081216f44341838016f9b";
 int g_nonce = 0;
 
 void	HMacSign(char *key, char *data, char *sign_mac)
@@ -34,7 +34,7 @@ void	CancelAllOrders()
 {
 //	return;
 
-	char content[MAX_PATH]={0}, header_ex[1024]={0}, sign_mac[256]={0};
+	char content[1024]={0}, header_ex[1024]={0}, sign_mac[256]={0};
 	
 	g_PoloReqSec.Lock();
 	
@@ -81,7 +81,7 @@ void	GetBalances(vector<BalanceUnit> &vBalance, double &dwAvailMoney, BOOL &bHas
 	dwAvailMoney = 0.0;
 
 	g_PoloReqSec.Lock();
-	char content[MAX_PATH]={0}, header_ex[1024]={0}, sign_mac[256]={0};
+	char content[1024]={0}, header_ex[1024]={0}, sign_mac[256]={0};
 
 	//Balance
 	sprintf(content, "command=returnAvailableAccountBalances&nonce=%d", GetNonce());
@@ -314,7 +314,7 @@ void	TradeAction(char *currency, double amount, BOOL bBuy)
 
 	if(strlen(ActionPrice)>0)
 	{
-		char content[MAX_PATH]={0}, header_ex[1024]={0}, sign_mac[256]={0};
+		char content[1024]={0}, header_ex[1024]={0}, sign_mac[256]={0};
 
 		g_PoloReqSec.Lock();
 		sprintf(content, "command=%s&currencyPair=%s&rate=%s&amount=%9.8f&%s&nonce=%d",
@@ -336,7 +336,7 @@ void	EggAction(char *currency, double amount, double price, BOOL bBuy)
 	char ActionPrice[20]={0};
 	sprintf(ActionPrice, "%9.8f", price);
 
-	char content[MAX_PATH]={0}, header_ex[1024]={0}, sign_mac[256]={0};
+	char content[1024]={0}, header_ex[1024]={0}, sign_mac[256]={0};
 	
 	g_PoloReqSec.Lock();
 	sprintf(content, "command=%s&currencyPair=%s&rate=%s&amount=%9.8f&%s&nonce=%d",
@@ -368,7 +368,7 @@ double GetLastTradePrice(char *currency)
 {
 	char currencyPair[20]={0};
 	sprintf(currencyPair, "USDT_%s", currency);
-	char content[MAX_PATH]={0}, header_ex[1024]={0}, sign_mac[256]={0};
+	char content[1024]={0}, header_ex[1024]={0}, sign_mac[256]={0};
 	
 	g_PoloReqSec.Lock();
 	sprintf(content, "command=returnTradeHistory&currencyPair=%s&limit=6&nonce=%d", currencyPair, GetNonce());
