@@ -40,6 +40,7 @@ struct	TestParam
 	int		PerSeed;
 	int		nUnitParam_Start;
 	int		nUnitParam_End;
+	double	fStepFlag;
 	int		nCalcDays;
 	double	TradeFee;
 };
@@ -59,6 +60,9 @@ struct	CalcParam
 	float fLastActPrice;
 	float fNow;
 	float fAverPrice;
+
+	float fNewTrend;
+	float fNewSwing;
 };
 
 struct HisProfitLineItem
@@ -149,10 +153,10 @@ public:
 	void	InputBaseData(char *Code, TestParam tp, AnalyData* pAnalyDatap, long nDataNum);
 	void	CalcProfit(HISDAT *pAnaData, int nStartPos, int nEndPos, float *fTriger, CalcParam TradeParams, BOOL bLog=FALSE);
 
-	void	CalcRes_Show_Result(char *ZBCode, int nUnit, CalcParam CPParam, int nUnitParamFlag_Start, int nUnitParamFlag_End);
+	void	CalcRes_Show_Result(char *ZBCode, int nUnit, CalcParam CPParam, TestParam tp);
 	void	FiltBestProfLine_Dyna(vector<MatchParamInfo> &BestMatchs);
 	void	FiltBestProfLine_Static(vector<MatchParamInfo> &BestMatchs);
-	void	FiltBestProfLine(vector<MatchParamInfo> &BestMatchs_Static, vector<MatchParamInfo> &BestMatchs_Dyna);
+	void	FiltBestProfLine(vector<MatchParamInfo> &BestMatchs_Static, vector<MatchParamInfo> &BestMatchs_Dyna, TestParam tp);
 
 };
 
