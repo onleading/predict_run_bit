@@ -368,7 +368,7 @@ void	COneCalc::CalcProfit(HISDAT *pAnaData, int nStartPos, int nEndPos, float *f
 	}
 }
 
-void	COneCalc::CalcRes_Show_Result(char *ZBCode, int nUnit, CalcParam CPParam, int nUnitParamFlag_Start, int nUnitParamFlag_End)
+void	COneCalc::CalcRes_Show_Result(char *ZBCode, int nUnit, CalcParam CPParam, TestParam tp)
 {
 	m_nGSIndex = m_pCalc->_CallDTopViewCalc_9(ZB_TYPE, ZBCode);
 	if(m_nGSIndex<0)
@@ -418,9 +418,19 @@ void	COneCalc::CalcRes_Show_Result(char *ZBCode, int nUnit, CalcParam CPParam, i
 			for(int j=0;j<MAX_PRDNUM;j++)
 				pIndex->aPara[1].nValue[j] = nParam1;
 
-
 			int nNeedCalcFlag = nUnit*nParam0;
-			if(nNeedCalcFlag<nUnitParamFlag_Start||nNeedCalcFlag>nUnitParamFlag_End)
+			if(nNeedCalcFlag<tp.nUnitParam_Start||nNeedCalcFlag>tp.nUnitParam_End)
+				continue;
+			BOOL bTooClose = FALSE;
+			for(j=0;j<m_NeedCalcFlag.size();j++)
+			{
+				if(fabs((double)nNeedCalcFlag-(double)m_NeedCalcFlag[j])<tp.fStepFlag)
+				{
+					bTooClose = TRUE;
+					break;
+				}
+			}
+			if(bTooClose)
 				continue;
 
 			CalcParam cp={0};
@@ -441,6 +451,7 @@ void	COneCalc::CalcRes_Show_Result(char *ZBCode, int nUnit, CalcParam CPParam, i
 			for(;!TBE_MEANLESS(pCalcData[0][nStartPos])&&nStartPos<=nEndPos;nStartPos++);
 			float *fTriger = pCalcData[0];
 	
+			cp.fNewTrend = pCalcData[1][0];
 			cp.ZBParam[0] = nParam0;
 			cp.ZBParam[1] = nParam1;
 			cp.nUnit = nUnit;
@@ -903,7 +914,7 @@ void	COneCalc::FiltBestProfLine_Dyna(vector<MatchParamInfo> &BestMatchs)
 	}
 }
 
-void	COneCalc::FiltBestProfLine(vector<MatchParamInfo> &BestMatchs_Static, vector<MatchParamInfo> &BestMatchs_Dyna)
+void	COneCalc::FiltBestProfLine(vector<MatchParamInfo> &BestMatchs_Static, vector<MatchParamInfo> &BestMatchs_Dyna, TestParam tp)
 {
 	long nSleepCount_1 = 0;
 	long nSleepCount_2 = 0;
@@ -964,7 +975,7 @@ void	COneCalc::FiltBestProfLine(vector<MatchParamInfo> &BestMatchs_Static, vecto
 					DataVal[dProfPerItem] = nXh;
 				}
 				vector<int> Selectedin;
-				FiltBestFrom(0.0382, Selectedin, DataVal);
+				FiltBestFrom(0.05, Selectedin, DataVal);
 
 				for(j=0;j<Selectedin.size();j++)
 				{
@@ -1028,7 +1039,7 @@ void	COneCalc::FiltBestProfLine(vector<MatchParamInfo> &BestMatchs_Static, vecto
 					{
 						if(memcmp(&tci.cp, &vGoodMatch_s[n].cp, sizeof(CalcParam))==0)
 						{
-							vGoodMatch_s[n].fScore1+=1.0;
+							vGoodMatch_s[n].fScore1+=(1.0+tci.tpi.fProfit/100.0);
 							vGoodMatch_s[n].fProfitSum += tci.tpi.fProfit;
 							vGoodMatch_s[n].fGapSum += tci.tpi.fGap;
 							vGoodMatch_s[n].nRangeSum += (tci.tpi.nRawPos_End-tci.tpi.nRawPos_Start+1);
@@ -1041,7 +1052,7 @@ void	COneCalc::FiltBestProfLine(vector<MatchParamInfo> &BestMatchs_Static, vecto
 					{
 						MatchParamInfo mpi={0};
 						memcpy(&mpi.cp, &tci.cp, sizeof(CalcParam));
-						mpi.fScore1 = 1.0;
+						mpi.fScore1 = 1.0+tci.tpi.fProfit/100.0;
 						mpi.fProfitSum = tci.tpi.fProfit;
 						mpi.fGapSum = tci.tpi.fGap;
 						mpi.nRangeSum = (tci.tpi.nRawPos_End-tci.tpi.nRawPos_Start+1);
@@ -1059,7 +1070,7 @@ void	COneCalc::FiltBestProfLine(vector<MatchParamInfo> &BestMatchs_Static, vecto
 	for(i=0;i<vGoodMatch_s.size();i++)
 		DataVal_s[vGoodMatch_s[i].fScore1] = i;
 	vector<int> Selected_s;
-	FiltBestFrom(0.0262, Selected_s, DataVal_s);
+	FiltBestFrom(0.025, Selected_s, DataVal_s);
 
 	DataVal_s.clear();
 	for(i=0;i<Selected_s.size();i++)
@@ -1140,7 +1151,7 @@ void	COneCalc::FiltBestProfLine(vector<MatchParamInfo> &BestMatchs_Static, vecto
 						{
 							if(memcmp(&tci_his_next.cp, &vGoodMatch_d[n].cp, sizeof(CalcParam))==0)
 							{
-								vGoodMatch_d[n].fScore1+=1.0;
+								vGoodMatch_d[n].fScore1+=(1.0+tci_his_next.tpi.fProfit);
 								vGoodMatch_d[n].fScore2+=fPreMatchFlag;
 								vGoodMatch_d[n].fProfitSum += tci_his_next.tpi.fProfit;
 								vGoodMatch_d[n].fGapSum += tci_his_next.tpi.fGap;
@@ -1166,7 +1177,7 @@ void	COneCalc::FiltBestProfLine(vector<MatchParamInfo> &BestMatchs_Static, vecto
 							{
 								MatchParamInfo mpi={0};
 								memcpy(&mpi.cp, &tci_his_next.cp, sizeof(CalcParam));
-								mpi.fScore1 = 1.0; 
+								mpi.fScore1 = 1.0+tci_his_next.tpi.fProfit; 
 								mpi.fScore2 = fPreMatchFlag;
 								mpi.fGapSum = tci_his_next.tpi.fGap;
 								mpi.fProfitSum = tci_his_next.tpi.fProfit;
