@@ -120,7 +120,7 @@ private:
 	void	ProceedSimTrade(SimuTradeUnit *pSimTrade, long_short NowTime, double fNowPrice, char *LogDict);
 	double  CalcTradeSingnal(double fNowPrice, double dwLastInVolRatio, vector<TradeSingnal> &ready2change);
 
-	BOOL	GetSwingPos(int nTestPart, double &dwPostSwing);
+	BOOL	GetSwingPos(int nTestPart, double &dwPostSwing, double &dwPostTrend);
 	void	GetSwingPos(double &dwPostSwing);
 
 public:
